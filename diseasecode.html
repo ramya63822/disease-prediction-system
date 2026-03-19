@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Symptom Checker & Clinical Intelligence System</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+:root {
+    --primary-color: #3b82f6;
+    --bg-color: #0f172a;
+    --card-color: #1e293b;
+    --text-color: #f1f5f9;
+}
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+.card {
+    background-color: var(--card-color);
+    border-radius: 1rem;
+    padding: 20px;
+}
+.scrollable-history {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>
+</head>
+
+<body class="p-6">
+
+<div class="max-w-5xl mx-auto space-y-8">
+
+<header class="text-center">
+<h1 class="text-4xl font-extrabold text-blue-400">
+Clinical AI Symptom Intelligence System
+</h1>
+<p class="text-slate-400 mt-2">
+Advanced Decision Support | Emergency Aware | Adaptive Learning Enabled
+</p>
+</header>
+
+<!-- INPUT -->
+<div class="card space-y-4">
+<h2 class="text-2xl font-bold">Enter Symptoms</h2>
+
+<textarea id="symptomsInput"
+rows="4"
+class="w-full p-3 bg-slate-700 rounded-lg"
+placeholder="Example: fatigue, dizziness, cold hands">
+</textarea>
+
+<button id="predictButton"
+class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold">
+Analyze Symptoms
+</button>
+</div>
+
+<!-- RESULT -->
+<div class="card">
+<h2 class="text-2xl font-bold mb-4">Analysis Result</h2>
+<div id="resultOutput" class="text-slate-300">
+Results will appear here...
+</div>
+</div>
+
+</div>
+
+<script>
+
+// ==========================
+// BASE MODEL (UNCHANGED)
+// ==========================
+
+const predictionModel = [
+{ name:"Common Cold", symptoms:["cough","sneezing","runny nose","sore throat","headache"]},
+{ name:"Migraine", symptoms:["severe headache","nausea","vomiting","blurred vision"]},
+{ name:"Anemia", symptoms:["fatigue","dizziness","cold hands","palpitations"]},
+{ name:"Hypothyroidism", symptoms:["fatigue","weight gain","cold hands","depression"]},
+{ name:"Gastroenteritis", symptoms:["vomiting","diarrhea","abdominal pain","nausea"]},
+{ name:"Stress or Anxiety", symptoms:["headache","restlessness","fatigue","palpitations"]},
+{ name:"Arthritis", symptoms:["joint pain","swelling joints","movement stiffness"]},
+
+// Added Diseases
+{ name:"Diabetes", symptoms:["frequent urination","increased thirst","fatigue","blurred vision"]},
+{ name:"Hypertension", symptoms:["headache","chest pain","dizziness","shortness of breath"]},
+{ name:"Asthma", symptoms:["shortness of breath","chest tightness","wheezing","cough"]},
+{ name:"Pneumonia", symptoms:["fever","cough","chest pain","difficulty breathing"]},
+{ name:"Tuberculosis", symptoms:["chronic cough","weight loss","night sweats","fever"]},
+{ name:"Typhoid", symptoms:["high fever","abdominal pain","weakness","loss of appetite"]},
+{ name:"Malaria", symptoms:["fever","chills","sweating","headache"]},
+{ name:"Dengue", symptoms:["high fever","joint pain","skin rash","muscle pain"]},
+{ name:"Chickenpox", symptoms:["itchy rash","fever","fatigue","loss of appetite"]},
+{ name:"COVID-19", symptoms:["fever","dry cough","loss of taste","difficulty breathing"]},
+{ name:"Food Poisoning", symptoms:["vomiting","diarrhea","stomach cramps","nausea"]},
+{ name:"Urinary Tract Infection", symptoms:["burning urination","frequent urination","pelvic pain","cloudy urine"]},
+{ name:"Kidney Stones", symptoms:["severe abdominal pain","blood in urine","nausea","back pain"]},
+{ name:"Heart Attack", symptoms:["chest pain","shortness of breath","sweating","left arm pain"]},
+{ name:"Stroke", symptoms:["sudden weakness","confusion","difficulty speaking","blurred vision"]},
+{ name:"Depression", symptoms:["sadness","loss of interest","fatigue","sleep problems"]},
+{ name:"Allergy", symptoms:["sneezing","itching","skin rash","watering eyes"]},
+{ name:"Sinusitis", symptoms:["facial pain","nasal congestion","headache","runny nose"]},
+{ name:"Appendicitis", symptoms:["lower right abdominal pain","nausea","vomiting","fever"]},
+{ name:"Peptic Ulcer", symptoms:["burning stomach pain","bloating","nausea","heartburn"]},
+// Continued Diseases
+
+{ name:"Bronchitis", symptoms:["persistent cough","mucus production","fatigue","chest discomfort"]},
+{ name:"Influenza", symptoms:["high fever","body aches","chills","dry cough","fatigue"]},
+{ name:"Conjunctivitis", symptoms:["red eyes","itching eyes","watery discharge","eye irritation"]},
+{ name:"Eczema", symptoms:["dry skin","itching","red patches","skin inflammation"]},
+{ name:"Psoriasis", symptoms:["scaly skin","red patches","itching","dry cracked skin"]},
+{ name:"Osteoporosis", symptoms:["bone pain","frequent fractures","back pain","stooped posture"]},
+{ name:"Parkinson’s Disease", symptoms:["tremors","slow movement","muscle stiffness","balance problems"]},
+{ name:"Epilepsy", symptoms:["seizures","confusion","loss of awareness","muscle jerking"]},
+{ name:"Alzheimer’s Disease", symptoms:["memory loss","confusion","difficulty speaking","mood changes"]},
+{ name:"Hyperthyroidism", symptoms:["weight loss","rapid heartbeat","anxiety","sweating"]},
+{ name:"Celiac Disease", symptoms:["diarrhea","bloating","fatigue","weight loss"]},
+{ name:"Pancreatitis", symptoms:["upper abdominal pain","nausea","vomiting","fever"]},
+{ name:"Liver Cirrhosis", symptoms:["jaundice","abdominal swelling","fatigue","easy bruising"]},
+{ name:"Hepatitis", symptoms:["jaundice","dark urine","fatigue","abdominal pain"]},
+{ name:"Chronic Kidney Disease", symptoms:["swelling legs","fatigue","shortness of breath","reduced urine output"]},
+{ name:"Glaucoma", symptoms:["eye pain","blurred vision","headache","vision loss"]},
+{ name:"Meningitis", symptoms:["stiff neck","high fever","confusion","headache"]},
+{ name:"Leukemia", symptoms:["frequent infections","fatigue","easy bleeding","weight loss"]},
+{ name:"Lung Cancer", symptoms:["persistent cough","chest pain","weight loss","shortness of breath"]},
+{ name:"Breast Cancer", symptoms:["breast lump","nipple discharge","breast pain","skin dimpling"]},
+{ name:"Prostate Cancer", symptoms:["difficulty urinating","blood in urine","pelvic pain","weak urine flow"]},
+{ name:"Gout", symptoms:["severe joint pain","swelling","redness","limited movement"]},
+{ name:"Sciatica", symptoms:["lower back pain","leg pain","numbness","tingling sensation"]},
+{ name:"Vertigo", symptoms:["spinning sensation","nausea","loss of balance","headache"]},
+{ name:"Dehydration", symptoms:["dry mouth","dizziness","dark urine","fatigue"]},
+{ name:"Heat Stroke", symptoms:["high body temperature","confusion","dry skin","rapid pulse"]},
+{ name:"Hypoglycemia", symptoms:["shaking","sweating","confusion","hunger"]},
+{ name:"Food Allergy", symptoms:["hives","swelling","itching","difficulty breathing"]},
+{ name:"Sleep Apnea", symptoms:["loud snoring","daytime sleepiness","breathing pauses","morning headache"]},
+{ name:"Polycystic Ovary Syndrome (PCOS)", symptoms:["irregular periods","weight gain","acne","excess hair growth"]}
+
+];
+
+// ==========================
+// MODEL PREPARATION
+// ==========================
+
+const preparePredictionModel = (model)=>{
+return model.map(disease=>{
+let keys=new Set();
+disease.symptoms.forEach(sym=>{
+keys.add(sym);
+sym.split(" ").forEach(word=>{
+if(word.length>2) keys.add(word);
+});
+});
+disease.matching_keys=[...keys];
+return disease;
+});
+};
+
+const preparedModel = preparePredictionModel(predictionModel);
+
+// ==========================
+// NORMALIZE INPUT
+// ==========================
+
+const normalizeSymptoms=(input)=>{
+if(!input) return [];
+return input.toLowerCase()
+.replace(/[\n;,]/g,' ')
+.split(/\s+/)
+.filter(s=>s.length>2);
+};
+
+// ==========================
+// EMERGENCY SYSTEM
+// ==========================
+
+const emergencySymptoms=[
+"chest pain",
+"difficulty breathing",
+"loss of consciousness"
+];
+
+function checkEmergency(symptoms){
+return symptoms.some(sym=>emergencySymptoms.includes(sym));
+}
+
+// ==========================
+// CONTRADICTION SYSTEM
+// ==========================
+
+const contradictions=[
+["weight gain","weight loss"],
+["cold hands","sweating"]
+];
+
+function detectContradictions(symptoms){
+return contradictions.filter(pair=>
+symptoms.includes(pair[0]) && symptoms.includes(pair[1])
+);
+}
+
+// ==========================
+// PREDICTION ENGINE
+// ==========================
+
+function predictDisease(symptoms){
+
+let bestMatch={disease:"Uncertain",score:0,count:0};
+let allScores=[];
+
+for(const disease of preparedModel){
+
+let matchCount=0;
+
+symptoms.forEach(sym=>{
+if(disease.matching_keys.includes(sym)){
+matchCount++;
+}
+});
+
+if(matchCount>0){
+let score=(matchCount/disease.symptoms.length)*100;
+allScores.push({name:disease.name,score:score,count:matchCount});
+
+if(matchCount>bestMatch.count){
+bestMatch={
+disease:disease.name,
+score:score,
+count:matchCount
+};
+}
+}
+}
+
+allScores.sort((a,b)=>b.score-a.score);
+
+return {bestMatch, top3:allScores.slice(0,3)};
+}
+
+// ==========================
+// LAB TEST AI
+// ==========================
+
+const labTestMap={
+"Anemia":["CBC","Serum Ferritin","Vitamin B12"],
+"Hypothyroidism":["TSH","T3","T4"],
+"Hyperthyroidism":["TSH","Thyroid Scan"],
+"Migraine":["Neurological Evaluation"],
+"Gastroenteritis":["Stool Test"]
+};
+
+function suggestLabTests(disease){
+return labTestMap[disease] || ["General Physician Consultation"];
+}
+
+// ==========================
+// PSYCHOLOGICAL OVERLAY
+// ==========================
+
+function detectPsychOverlay(symptoms){
+const stress=["headache","fatigue","restlessness","palpitations"];
+let count=0;
+symptoms.forEach(s=>{
+if(stress.includes(s)) count++;
+});
+return count>=3;
+}
+
+// ==========================
+// HANDLE PREDICTION
+// ==========================
+
+document.getElementById("predictButton")
+.addEventListener("click",()=>{
+
+const raw=document.getElementById("symptomsInput").value;
+const symptoms=normalizeSymptoms(raw);
+
+if(symptoms.length===0){
+alert("Enter symptoms");
+return;
+}
+
+if(checkEmergency(symptoms)){
+document.getElementById("resultOutput").innerHTML=
+`<div class="text-red-500 text-xl font-bold">
+🚨 EMERGENCY ALERT: Seek Immediate Medical Attention
+</div>`;
+return;
+}
+
+const contradictionsFound=detectContradictions(symptoms);
+const {bestMatch,top3}=predictDisease(symptoms);
+const labTests=suggestLabTests(bestMatch.disease);
+const psych=detectPsychOverlay(symptoms);
+
+let riskLevel="Low";
+let color="text-green-400";
+
+if(bestMatch.score>60){
+riskLevel="High";
+color="text-red-400";
+}
+else if(bestMatch.score>30){
+riskLevel="Moderate";
+color="text-yellow-400";
+}
+
+let html=`
+<p class="text-xl font-semibold">
+Most Likely: <span class="${color}">${bestMatch.disease}</span>
+</p>
+<p>Confidence Score: ${bestMatch.score.toFixed(1)}%</p>
+<p>Risk Level: <span class="${color}">${riskLevel}</span></p>
+
+<div class="w-full bg-slate-600 rounded-full h-2 mt-2">
+<div class="bg-blue-500 h-2 rounded-full"
+style="width:${Math.min(bestMatch.score,100)}%"></div>
+</div>
+`;
+
+if(contradictionsFound.length>0){
+html+=`
+<div class="text-yellow-400 mt-3">
+⚠ Contradictory symptoms detected.
+</div>`;
+}
+
+if(psych){
+html+=`
+<div class="text-purple-400 mt-3">
+🧠 Possible stress-related overlap detected.
+</div>`;
+}
+
+html+=`
+<div class="mt-4">
+<h4 class="font-semibold text-blue-300">Top 3 Conditions:</h4>
+<ul>
+`;
+top3.forEach(d=>{
+html+=`<li>${d.name} (${d.score.toFixed(1)}%)</li>`;
+});
+html+=`</ul></div>`;
+
+html+=`
+<div class="mt-4">
+<h4 class="font-semibold text-green-300">Suggested Lab Tests:</h4>
+<ul>
+`;
+labTests.forEach(t=>{
+html+=`<li>${t}</li>`;
+});
+html+=`</ul></div>`;
+
+html+=`
+<div class="mt-4">
+<button onclick="localStorage.setItem('feedback','yes')"
+class="bg-green-600 px-3 py-1 rounded mr-2">
+👍 Accurate
+</button>
+<button onclick="localStorage.setItem('feedback','no')"
+class="bg-red-600 px-3 py-1 rounded">
+👎 Not Accurate
+</button>
+</div>
+
+<p class="mt-4 text-sm text-slate-400">
+⚠ Disclaimer: This is an AI simulation and not a medical diagnosis.
+Consult a licensed doctor.
+</p>
+`;
+
+document.getElementById("resultOutput").innerHTML=html;
+
+});
+
+</script>
+
+</body>
+</html>
